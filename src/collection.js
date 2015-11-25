@@ -57,7 +57,15 @@ angular.module('ngNestedResource')
             }
 
             return this.model.list(collection.queryParams, success, error).then(function (results) {
+
                 collection.clear();
+
+                if (results && results.hasOwnProperty('data')) {
+                    collection.totalItems = results.totalItems;
+                    collection.totalPages = results.totalPages;
+                    results = results.data;
+                }
+
                 angular.forEach(results, function (item) {
                     collection.push(item);
                 });
