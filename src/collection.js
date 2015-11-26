@@ -1,6 +1,6 @@
 angular.module('ngNestedResource')
     .factory('BaseCollection', function() {
-        var BaseCollection = function (model, perPage, pageNumber) {
+        var BaseCollection = function (model, perPage, pageNumber, paginatedObjectProperties) {
             this.model = model;
             this.queryParams = {};
             this.page = pageNumber ? pageNumber : 1;
@@ -9,6 +9,11 @@ angular.module('ngNestedResource')
             this.totalPages;
             this.pages = [];
             this.endReached = false;
+            this.paginatedObjectProperties = angular.extend({
+                'totalItems': 'total',
+                'totalPages': 'last_page',
+                'data': 'data'
+            }, paginatedObjectProperties);
         };
         BaseCollection.prototype = new Array();
 
@@ -60,10 +65,10 @@ angular.module('ngNestedResource')
 
                 collection.clear();
 
-                if (results && results.hasOwnProperty('data')) {
-                    collection.totalItems = results.totalItems;
-                    collection.totalPages = results.totalPages;
-                    results = results.data;
+                if (results && results.hasOwnProperty(collection.paginatedObjectProperties.data)) {
+                    collection.totalItems = results[collection.paginatedObjectProperties.totalItems];
+                    collection.totalPages = results[collection.paginatedObjectProperties.totalPages];
+                    results = results[collection.paginatedObjectProperties.data];
                 }
 
                 angular.forEach(results, function (item) {

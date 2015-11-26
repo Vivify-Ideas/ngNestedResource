@@ -1,15 +1,7 @@
 angular.module('ngNestedResource')
     .factory('BaseModel', function($resource, $injector, $http) {
-        return function (url, urlMap, subModels, resourceMethods, paginatedObjectProperties) {
+        return function (url, urlMap, subModels, resourceMethods) {
             resourceMethods = resourceMethods || {};
-            paginatedObjectProperties = paginatedObjectProperties || {};
-
-            paginatedObjectProperties = angular.extend({
-                'totalItems': 'total',
-                'totalPages': 'last_page',
-                'data': 'data'
-            }, paginatedObjectProperties);
-
             var resource = $resource(
                 url,
                 urlMap,
@@ -93,25 +85,11 @@ angular.module('ngNestedResource')
             Model.list = function (params, success, error) {
                 return resource._list(params, null, success, error)
                     .$promise.then(function (results) {
+                        angular.forEach(results, function (item, k) {
+                            results[k] = _parseSubModels(item);
+                        });
 
-                        if (results && results.hasOwnProperty(paginatedObjectProperties.data)) {
-
-                            results.totalItems = results[paginatedObjectProperties.totalItems];
-                            results.totalPages = results[paginatedObjectProperties.totalPages];
-
-                            angular.forEach(results[paginatedObjectProperties.data], function (item, k) {
-                                results.data[k] = _parseSubModels(item);
-                            });
-
-                            return results;
-
-                        } else {
-                            angular.forEach(results, function (item, k) {
-                                results[k] = _parseSubModels(item);
-                            });
-
-                            return results;
-                        }
+                        return results;
                     });
             };
 
