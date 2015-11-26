@@ -176,8 +176,69 @@ if (posts.allLoaded()) {
 // ... to be continued
 ```
 
+## Pagination
+
+This section is helpful in case you want to get a collection of resources with additional data related to pagination.
+
+You need to add an extra parameter to a model, if your server returns an object instead of array, e.g.:
+
+```json
+{
+   "total": 50,
+   "per_page": 15,
+   "current_page": 1,
+   "last_page": 4,
+   "next_page_url": "http://your.app?page=2",
+   "prev_page_url": null,
+   "from": 1,
+   "to": 15,
+   "data":[
+        {
+            // Result Object
+        },
+        {
+            // Result Object
+        }
+   ]
+}
+```
+
+Here is an example of a model:
+
+```js
+// User Model
+angular.module('MyApp')
+    .factory('UserModel', function(BaseModel) {
+        var UserModel = BaseModel(
+            '/users/:id',
+            {
+                id: '@id'
+            },
+            {
+                posts: 'PostModel' // nesting array of PostModel-s
+            },
+            {
+                '_list': {
+                    method: 'GET',
+                    isArray: false
+                }
+            }
+        );
+
+        return UserModel;
+    });
+```
+
+Note you have `isArray: false` in parameters.
+
 ## Todo
 
 - add tests
 - allow collection objects to be nested
 - ...
+
+## License
+
+Licensed under the MIT license. See LICENSE for more information.
+
+Copyright (c) 2015 Vivify Ideas d.o.o.
