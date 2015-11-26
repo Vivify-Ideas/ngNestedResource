@@ -5,7 +5,7 @@ angular.module('ngNestedResource', [
 ]);
 angular.module('ngNestedResource')
     .factory('BaseCollection', function() {
-        var BaseCollection = function (model, perPage, pageNumber) {
+        var BaseCollection = function (model, perPage, pageNumber, paginatedObjectProperties) {
             this.model = model;
             this.queryParams = {};
             this.page = pageNumber ? pageNumber : 1;
@@ -14,6 +14,11 @@ angular.module('ngNestedResource')
             this.totalPages;
             this.pages = [];
             this.endReached = false;
+            this.paginatedObjectProperties = angular.extend({
+                'totalItems': 'total',
+                'totalPages': 'last_page',
+                'data': 'data'
+            }, paginatedObjectProperties);
         };
         BaseCollection.prototype = new Array();
 
@@ -65,10 +70,10 @@ angular.module('ngNestedResource')
 
                 collection.clear();
 
-                if (results && results.hasOwnProperty('data')) {
-                    collection.totalItems = results.totalItems;
-                    collection.totalPages = results.totalPages;
-                    results = results.data;
+                if (results && results.hasOwnProperty(collection.paginatedObjectProperties.data)) {
+                    collection.totalItems = results[collection.paginatedObjectProperties.totalItems];
+                    collection.totalPages = results[collection.paginatedObjectProperties.totalPages];
+                    results = results[collection.paginatedObjectProperties.data];
                 }
 
                 angular.forEach(results, function (item) {
@@ -194,16 +199,8 @@ angular.module('ngNestedResource')
 
 angular.module('ngNestedResource')
     .factory('BaseModel', ["$resource", "$injector", "$http", function($resource, $injector, $http) {
-        return function (url, urlMap, subModels, resourceMethods, paginatedObjectProperties) {
+        return function (url, urlMap, subModels, resourceMethods) {
             resourceMethods = resourceMethods || {};
-            paginatedObjectProperties = paginatedObjectProperties || {};
-
-            paginatedObjectProperties = angular.extend({
-                'totalItems': 'total',
-                'totalPages': 'last_page',
-                'data': 'data'
-            }, paginatedObjectProperties);
-
             var resource = $resource(
                 url,
                 urlMap,
@@ -287,25 +284,11 @@ angular.module('ngNestedResource')
             Model.list = function (params, success, error) {
                 return resource._list(params, null, success, error)
                     .$promise.then(function (results) {
+                        angular.forEach(results, function (item, k) {
+                            results[k] = _parseSubModels(item);
+                        });
 
-                        if (results && results.hasOwnProperty(paginatedObjectProperties.data)) {
-
-                            results.totalItems = results[paginatedObjectProperties.totalItems];
-                            results.totalPages = results[paginatedObjectProperties.totalPages];
-
-                            angular.forEach(results[paginatedObjectProperties.data], function (item, k) {
-                                results.data[k] = _parseSubModels(item);
-                            });
-
-                            return results;
-
-                        } else {
-                            angular.forEach(results, function (item, k) {
-                                results[k] = _parseSubModels(item);
-                            });
-
-                            return results;
-                        }
+                        return results;
                     });
             };
 
