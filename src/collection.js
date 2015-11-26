@@ -17,6 +17,28 @@ angular.module('ngNestedResource')
         };
         BaseCollection.prototype = new Array();
 
+        BaseCollection.prototype.fetch = function(params, success, error) {
+
+            var collection = this;
+
+            return this.model.list(params, success, error).then(function (results) {
+
+                collection.clear();
+
+                if (results && results.hasOwnProperty(collection.paginatedObjectProperties.data)) {
+                    collection.totalItems = results[collection.paginatedObjectProperties.totalItems];
+                    collection.totalPages = results[collection.paginatedObjectProperties.totalPages];
+                    results = results[collection.paginatedObjectProperties.data];
+                }
+
+                angular.forEach(results, function (item) {
+                    collection.push(item);
+                });
+
+                return collection;
+            });
+        };
+
         BaseCollection.prototype.populate = function (data) {
             var collection = this;
             collection.clear();
@@ -61,22 +83,7 @@ angular.module('ngNestedResource')
                 collection.queryParams.take = collection.perPage;
             }
 
-            return this.model.list(collection.queryParams, success, error).then(function (results) {
-
-                collection.clear();
-
-                if (results && results.hasOwnProperty(collection.paginatedObjectProperties.data)) {
-                    collection.totalItems = results[collection.paginatedObjectProperties.totalItems];
-                    collection.totalPages = results[collection.paginatedObjectProperties.totalPages];
-                    results = results[collection.paginatedObjectProperties.data];
-                }
-
-                angular.forEach(results, function (item) {
-                    collection.push(item);
-                });
-
-                return collection;
-            });
+            return collection.fetch(collection.queryParams, success, error);
         };
 
         BaseCollection.prototype.filter = function (params, success, error) {
@@ -89,14 +96,7 @@ angular.module('ngNestedResource')
 
             angular.extend(collection.queryParams, params);
 
-            return this.model.list(collection.queryParams, success, error).then(function (results) {
-                collection.clear();
-                angular.forEach(results, function (item) {
-                    collection.push(item);
-                });
-
-                return collection;
-            });
+            return collection.fetch(collection.queryParams, success, error);
         };
 
         BaseCollection.prototype.clear = function () {
@@ -144,17 +144,10 @@ angular.module('ngNestedResource')
 
             this.queryParams.take = this.perPage;
             this.queryParams.skip = (page - 1)  * this.perPage;
+            this.queryParams.page = page;
             this.page = page;
 
-            return this.model.list(this.queryParams, success, error).then(function (results) {
-                collection.clear();
-                angular.forEach(results, function (item) {
-                    collection.push(item);
-                });
-
-                return collection;
-            });
-
+            return collection.fetch(collection.queryParams, success, error);
         };
 
         BaseCollection.prototype.noPrevious = function () {
