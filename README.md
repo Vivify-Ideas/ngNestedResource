@@ -176,8 +176,110 @@ if (posts.allLoaded()) {
 // ... to be continued
 ```
 
+## Pagination
+
+This section is helpful in case you want to get a collection of resources with additional data related to pagination.
+
+You need to add an extra parameter to a model, if your server returns an object instead of array, e.g.:
+
+```json
+{
+   "total": 50,
+   "per_page": 15,
+   "current_page": 1,
+   "last_page": 4,
+   "next_page_url": "http://your.app?page=2",
+   "prev_page_url": null,
+   "from": 1,
+   "to": 15,
+   "data":[
+        {
+            // Result Object
+        },
+        {
+            // Result Object
+        }
+   ]
+}
+```
+
+Here is an example of a model:
+
+```js
+// User Model
+angular.module('MyApp')
+    .factory('UserModel', function(BaseModel) {
+        var UserModel = BaseModel(
+            '/users/:id',
+            {
+                id: '@id'
+            },
+            {
+                posts: 'PostModel' // nesting array of PostModel-s
+            },
+            {
+                '_list': {
+                    method: 'GET',
+                    isArray: false
+                }
+            }
+        );
+
+        return UserModel;
+    });
+```
+
+Note you have `isArray: false` in parameters, otherwise you'll get an error related to bad resource configuration, e.g. `Error: [$resource:badcfg]`.
+
+Create a collection:
+
+```js
+app.factory('UsersCollection', function(BaseCollection, UserModel) {
+        var UsersCollection = BaseCollection(UserModel);
+
+        return UsersCollection;
+    });
+```
+
+Fetch data object from server:
+
+```js
+var users = new UsersCollection();
+users.query();
+```
+
+There are some defaults for data object:
+
+- totalItems
+- totalPages
+- data
+
+If your data object response uses other names for those properties, you can define them:
+
+```js
+app.factory('UsersCollection', function(BaseCollection, UserModel) {
+
+        var paginatedObjectProperties = {
+            'totalItems': <name_of_total_items_number_field>,
+            'totalPages': <name_of_number_of_pages_field>,
+            'data': <name_of_field_with_array_of_user_objects>
+        };
+        
+        // false values are actually perPage and pageNumber parameters
+        var UsersCollection = BaseCollection(UserModel, false, false, paginatedObjectProperties);
+
+        return UsersCollection;
+    });
+```
+
 ## Todo
 
 - add tests
 - allow collection objects to be nested
 - ...
+
+## License
+
+Licensed under the MIT license. See LICENSE for more information.
+
+Copyright (c) 2015 Vivify Ideas d.o.o.
