@@ -22,6 +22,33 @@ angular.module('ngNestedResource')
         };
         BaseCollection.prototype = new Array();
 
+        BaseCollection.prototype.fetch = function(params, success, error) {
+
+            var collection = this;
+
+            return this.model.list(params, success, error).then(function(results) {
+
+                collection.clear();
+
+                if (results && results.hasOwnProperty(collection.paginatedObjectProperties.data)) {
+                    collection.totalItems = results[collection.paginatedObjectProperties.totalItems];
+                    collection.totalPages = results[collection.paginatedObjectProperties.totalPages];
+
+                    angular.forEach(results[collection.paginatedObjectProperties.data], function (item, k) {
+                        results[collection.paginatedObjectProperties.data][k] = new collection.model(item);
+                    });
+
+                    results = results[collection.paginatedObjectProperties.data];
+                }
+
+                angular.forEach(results, function (item) {
+                    collection.push(item);
+                });
+
+                return collection;
+            });
+        };
+
         BaseCollection.prototype.populate = function (data) {
             var collection = this;
             collection.clear();
@@ -66,22 +93,7 @@ angular.module('ngNestedResource')
                 collection.queryParams.take = collection.perPage;
             }
 
-            return this.model.list(collection.queryParams, success, error).then(function (results) {
-
-                collection.clear();
-
-                if (results && results.hasOwnProperty(collection.paginatedObjectProperties.data)) {
-                    collection.totalItems = results[collection.paginatedObjectProperties.totalItems];
-                    collection.totalPages = results[collection.paginatedObjectProperties.totalPages];
-                    results = results[collection.paginatedObjectProperties.data];
-                }
-
-                angular.forEach(results, function (item) {
-                    collection.push(item);
-                });
-
-                return collection;
-            });
+            return collection.fetch(collection.queryParams, success, error);
         };
 
         BaseCollection.prototype.filter = function (params, success, error) {
@@ -94,14 +106,7 @@ angular.module('ngNestedResource')
 
             angular.extend(collection.queryParams, params);
 
-            return this.model.list(collection.queryParams, success, error).then(function (results) {
-                collection.clear();
-                angular.forEach(results, function (item) {
-                    collection.push(item);
-                });
-
-                return collection;
-            });
+            return collection.fetch(collection.queryParams, success, error);
         };
 
         BaseCollection.prototype.clear = function () {
@@ -149,17 +154,10 @@ angular.module('ngNestedResource')
 
             this.queryParams.take = this.perPage;
             this.queryParams.skip = (page - 1)  * this.perPage;
+            this.queryParams.page = page;
             this.page = page;
 
-            return this.model.list(this.queryParams, success, error).then(function (results) {
-                collection.clear();
-                angular.forEach(results, function (item) {
-                    collection.push(item);
-                });
-
-                return collection;
-            });
-
+            return collection.fetch(collection.queryParams, success, error);
         };
 
         BaseCollection.prototype.noPrevious = function () {
@@ -199,8 +197,9 @@ angular.module('ngNestedResource')
 
 angular.module('ngNestedResource')
     .factory('BaseModel', ["$resource", "$injector", "$http", function($resource, $injector, $http) {
-        return function (url, urlMap, subModels, resourceMethods) {
+        return function (url, urlMap, subModels, resourceMethods, objectDataField) {
             resourceMethods = resourceMethods || {};
+            objectDataField = objectDataField || 'data';
             var resource = $resource(
                 url,
                 urlMap,
@@ -282,11 +281,19 @@ angular.module('ngNestedResource')
             };
 
             Model.list = function (params, success, error) {
+                var model = this;
                 return resource._list(params, null, success, error)
                     .$promise.then(function (results) {
-                        angular.forEach(results, function (item, k) {
-                            results[k] = _parseSubModels(item);
-                        });
+
+                        if (Array.isArray(results)) {
+                            angular.forEach(results, function (item, k) {
+                                results[k] = _parseSubModels(item);
+                            });
+                        } else {
+                            angular.forEach(results[objectDataField], function (item, k) {
+                                results[objectDataField][k] = new model(item);
+                            });
+                        }
 
                         return results;
                     });
