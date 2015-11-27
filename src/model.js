@@ -1,7 +1,8 @@
 angular.module('ngNestedResource')
     .factory('BaseModel', function($resource, $injector, $http) {
-        return function (url, urlMap, subModels, resourceMethods) {
+        return function (url, urlMap, subModels, resourceMethods, objectDataField) {
             resourceMethods = resourceMethods || {};
+            objectDataField = objectDataField || 'data';
             var resource = $resource(
                 url,
                 urlMap,
@@ -83,11 +84,19 @@ angular.module('ngNestedResource')
             };
 
             Model.list = function (params, success, error) {
+                var model = this;
                 return resource._list(params, null, success, error)
                     .$promise.then(function (results) {
-                        angular.forEach(results, function (item, k) {
-                            results[k] = _parseSubModels(item);
-                        });
+
+                        if (Array.isArray(results)) {
+                            angular.forEach(results, function (item, k) {
+                                results[k] = _parseSubModels(item);
+                            });
+                        } else {
+                            angular.forEach(results[objectDataField], function (item, k) {
+                                results[objectDataField][k] = new model(item);
+                            });
+                        }
 
                         return results;
                     });

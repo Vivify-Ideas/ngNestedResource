@@ -21,13 +21,18 @@ angular.module('ngNestedResource')
 
             var collection = this;
 
-            return this.model.list(params, success, error).then(function (results) {
+            return this.model.list(params, success, error).then(function(results) {
 
                 collection.clear();
 
                 if (results && results.hasOwnProperty(collection.paginatedObjectProperties.data)) {
                     collection.totalItems = results[collection.paginatedObjectProperties.totalItems];
                     collection.totalPages = results[collection.paginatedObjectProperties.totalPages];
+
+                    angular.forEach(results[collection.paginatedObjectProperties.data], function (item, k) {
+                        results[collection.paginatedObjectProperties.data][k] = new collection.model(item);
+                    });
+
                     results = results[collection.paginatedObjectProperties.data];
                 }
 

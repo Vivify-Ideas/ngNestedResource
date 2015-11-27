@@ -229,7 +229,48 @@ angular.module('MyApp')
     });
 ```
 
-Note you have `isArray: false` in parameters.
+Note you have `isArray: false` in parameters, otherwise you'll get an error related to bad resource configuration, e.g. `Error: [$resource:badcfg]`.
+
+Create a collection:
+
+```js
+app.factory('UsersCollection', function(BaseCollection, UserModel) {
+        var UsersCollection = BaseCollection(UserModel);
+
+        return UsersCollection;
+    });
+```
+
+Fetch data object from server:
+
+```js
+var users = new UsersCollection();
+users.query();
+```
+
+There are some defaults for data object:
+
+- totalItems
+- totalPages
+- data
+
+If your data object response uses other names for those properties, you can define them:
+
+```js
+app.factory('UsersCollection', function(BaseCollection, UserModel) {
+
+        var paginatedObjectProperties = {
+            'totalItems': <name_of_total_items_number_field>,
+            'totalPages': <name_of_number_of_pages_field>,
+            'data': <name_of_field_with_array_of_user_objects>
+        };
+        
+        // false values are actually perPage and pageNumber parameters
+        var UsersCollection = BaseCollection(UserModel, false, false, paginatedObjectProperties);
+
+        return UsersCollection;
+    });
+```
 
 ## Todo
 
